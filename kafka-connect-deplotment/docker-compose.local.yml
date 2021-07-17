@@ -1,0 +1,35 @@
+version: '3'
+services:
+
+  kafka-connect:
+    hostname: kafka-connect
+    container_name: kafka-connect
+    build:
+      context: ../custom-connect-image
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+    environment: 
+      - "GROUP_ID=1"
+      - "BOOTSTRAP_SERVERS=kafka:29092"
+      - "HOST_NAME:kafka-connect"
+      - "OFFSET_FLUSH_INTERVAL_MS=10000"
+
+      - "CONFIG_STORAGE_TOPIC=connect-cluster-configs"
+      - "OFFSET_STORAGE_TOPIC=connect-cluster-offsets"
+      - "CONNECT_STATUS_STORAGE_TOPIC=connect-cluster-status"
+
+      - "CONNECT_config_storage_replication_factor=1"
+      - "CONNECT_offset_storage_replication_factor=1"
+      - "CONNECT_status_storage_replication_factor=1"
+
+      - "CONNECT_internal_key_converter_schemas_enable=false"
+      - "CONNECT_internal_value_converter_schemas_enable=false"
+    ports:
+      - "8083:8083"
+    volumes: 
+      - ${datadir}/kafka-connect/logs:/kafka/logs
+      - ${datadir}/kafka-connect/config:/kafka/config
+
+
+  

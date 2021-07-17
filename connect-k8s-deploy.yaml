@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-connect-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka-connect
+  template:
+    metadata:
+      labels:
+        app: kafka-connect
+    spec:
+      containers:
+      - name: kafka-connect
+        image: sparkpocacr.azurecr.io/sparkpoc/kafka-connect:latest
+        env: 
+        - name: GROUP_ID
+          value: "2"
+        - name: "BOOTSTRAP_SERVERS"
+          value: "kafkaserver.servicebus.windows.net:9093"
+
+        - name: "OFFSET_FLUSH_INTERVAL_MS"
+          value: "10000"
+        - name: "OFFSET_FLUSH_TIMEOUT_MS"
+          value: "50000"
+
+        - name: "CONFIG_STORAGE_TOPIC"
+          value: "connect-cluster-configs"
+        - name: "OFFSET_STORAGE_TOPIC"
+          value: "connect-cluster-offsets"
+        - name: "CONNECT_STATUS_STORAGE_TOPIC"
+          value: "connect-cluster-status"
+
+        - name: "CONNECT_config_storage_replication_factor"
+          value: "1"
+        - name: "CONNECT_offset_storage_replication_factor"
+          value: "1"
+        - name: "CONNECT_status_storage_replication_factor"
+          value: "1"
+
+        - name: "CONNECT_internal_key_converter_schemas_enable"
+          value: "false"
+        - name: "CONNECT_internal_value_converter_schemas_enable"
+          value: "false"
+
+        - name: "CONNECT_security.protocol"
+          value: "SASL_SSL"
+        - name: "CONNECT_sasl.mechanism"
+          value: "PLAIN"
+        - name: "CONNECT_sasl.jaas.config"
+          value: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"Endpoint=sb://kafkaserver.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mEdbnIlqrVHa5PRc4UMIMDJX8pe4sMbJd4j9Tur6308=\";"
+        
+        - name: "CONNECT_producer.security.protocol"
+          value: "SASL_SSL"
+        - name: "CONNECT_producer.sasl.mechanism"
+          value: "PLAIN"
+        - name: "CONNECT_producer.sasl.jaas.config"
+          value: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"Endpoint=sb://kafkaserver.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mEdbnIlqrVHa5PRc4UMIMDJX8pe4sMbJd4j9Tur6308=\";"
+        
+        - name: "CONNECT_consumer.security.protocol"
+          value: "SASL_SSL"
+        - name: "CONNECT_consumer.sasl.mechanism"
+          value: "PLAIN"
+        - name: "CONNECT_consumer.sasl.jaas.config"
+          value: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"Endpoint=sb://kafkaserver.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mEdbnIlqrVHa5PRc4UMIMDJX8pe4sMbJd4j9Tur6308=\";"
+        ports:
+        - containerPort: 8083

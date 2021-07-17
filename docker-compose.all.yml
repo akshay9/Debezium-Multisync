@@ -1,0 +1,123 @@
+version: '3'
+services:
+
+  src-postgres:
+    image: debezium/postgres:11-alpine
+    environment: 
+      - "POSTGRES_DB=${postgresDb}"
+      - "POSTGRES_USER=${postgresUser}"
+      - "POSTGRES_PASSWORD=${postgresPassword}"
+    ports:
+      - "5001:5432"
+    volumes: 
+      - ${datadir}/src-postgres:/var/lib/postgresql/data
+
+  dest-postgres:
+    image: postgres:11-alpine
+    environment: 
+      - POSTGRES_DB=${postgresDb}
+      - POSTGRES_USER=${postgresUser}
+      - POSTGRES_PASSWORD=${postgresPassword}
+    ports:
+      - "5002:5432"
+    volumes: 
+      - ${datadir}/dest-postgres:/var/lib/postgresql/data
+  
+  dest-elasticsearch:
+    image: elasticsearch:5.6-alpine
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes: 
+      - ${datadir}/elasticsearch:/usr/share/elasticsearch/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    # volumes:
+    #     - $HOME/pgadmin:/root/.pgadmin
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+
+  debezium:
+    build:
+      context: ./jdbc-connect-image
+      dockerfile: Dockerfile
+    environment: 
+      - "GROUP_ID=1"
+      - "BOOTSTRAP_SERVERS=${eventHubNamespace}.servicebus.windows.net:9093"
+      - "HOST_NAME:debezium"
+      - "OFFSET_FLUSH_INTERVAL_MS=10000"
+
+      - "CONFIG_STORAGE_TOPIC=connect-cluster-configs"
+      - "OFFSET_STORAGE_TOPIC=connect-cluster-offsets"
+      - "CONNECT_STATUS_STORAGE_TOPIC=connect-cluster-status"
+
+      - "CONNECT_config_storage_replication_factor=1"
+      - "CONNECT_offset_storage_replication_factor=1"
+      - "CONNECT_status_storage_replication_factor=1"
+
+      - "CONNECT_internal_key_converter_schemas_enable=false"
+      - "CONNECT_internal_value_converter_schemas_enable=false"
+
+      - "CONNECT_security.protocol=SASL_SSL"
+      - "CONNECT_sasl.mechanism=PLAIN"
+      - "CONNECT_sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+      
+      - "CONNECT_producer.security.protocol=SASL_SSL"
+      - "CONNECT_producer.sasl.mechanism=PLAIN"
+      - "CONNECT_producer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+      
+      - "CONNECT_consumer.security.protocol=SASL_SSL"
+      - "CONNECT_consumer.sasl.mechanism=PLAIN"
+      - "CONNECT_consumer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+    ports:
+      - "8083:8083"
+    volumes: 
+      - ${datadir}/debezium/logs:/kafka/logs
+      - ${datadir}/debezium/config:/kafka/config
+
+  postgres-connect:
+    build:
+      context: ./jdbc-connect-image
+      dockerfile: Dockerfile
+    environment: 
+      - "GROUP_ID=1"
+      - "BOOTSTRAP_SERVERS=${eventHubNamespace}.servicebus.windows.net:9093"
+      - "HOST_NAME:postgres-connect"
+      - "OFFSET_FLUSH_INTERVAL_MS=10000"
+
+      - "CONFIG_STORAGE_TOPIC=connect-cluster-configs"
+      - "OFFSET_STORAGE_TOPIC=connect-cluster-offsets"
+      - "CONNECT_STATUS_STORAGE_TOPIC=connect-cluster-status"
+
+      - "CONNECT_config_storage_replication_factor=1"
+      - "CONNECT_offset_storage_replication_factor=1"
+      - "CONNECT_status_storage_replication_factor=1"
+
+      - "CONNECT_internal_key_converter_schemas_enable=false"
+      - "CONNECT_internal_value_converter_schemas_enable=false"
+
+      - "CONNECT_security.protocol=SASL_SSL"
+      - "CONNECT_sasl.mechanism=PLAIN"
+      - "CONNECT_sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+      
+      - "CONNECT_producer.security.protocol=SASL_SSL"
+      - "CONNECT_producer.sasl.mechanism=PLAIN"
+      - "CONNECT_producer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+      
+      - "CONNECT_consumer.security.protocol=SASL_SSL"
+      - "CONNECT_consumer.sasl.mechanism=PLAIN"
+      - "CONNECT_consumer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+    ports: 
+      - "8084:8083"
+
+  # elasticsearch-connect:
+  #   build:
+  #     context: ./elasticsearch-connect-image
+  #     dockerfile: Dockerfile
+
+  

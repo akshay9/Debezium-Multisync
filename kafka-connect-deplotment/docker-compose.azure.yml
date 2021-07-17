@@ -1,0 +1,47 @@
+version: '3'
+services:
+
+  kafka-connect:
+    hostname: kafka-connect
+    container_name: kafka-connect
+    build:
+      context: ../custom-connect-image
+      dockerfile: Dockerfile
+    depends_on:
+      - kafka
+      environment: 
+      - "GROUP_ID=1"
+      - "BOOTSTRAP_SERVERS=${eventHubNamespace}.servicebus.windows.net:9093"
+      - "HOST_NAME:kafka-connect"
+      - "OFFSET_FLUSH_INTERVAL_MS=10000"
+
+      - "CONFIG_STORAGE_TOPIC=connect-cluster-configs"
+      - "OFFSET_STORAGE_TOPIC=connect-cluster-offsets"
+      - "CONNECT_STATUS_STORAGE_TOPIC=connect-cluster-status"
+
+      - "CONNECT_config_storage_replication_factor=1"
+      - "CONNECT_offset_storage_replication_factor=1"
+      - "CONNECT_status_storage_replication_factor=1"
+
+      - "CONNECT_internal_key_converter_schemas_enable=false"
+      - "CONNECT_internal_value_converter_schemas_enable=false"
+
+      - "CONNECT_security.protocol=SASL_SSL"
+      - "CONNECT_sasl.mechanism=PLAIN"
+      - "CONNECT_sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+      
+      - "CONNECT_producer.security.protocol=SASL_SSL"
+      - "CONNECT_producer.sasl.mechanism=PLAIN"
+      - "CONNECT_producer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+      
+      - "CONNECT_consumer.security.protocol=SASL_SSL"
+      - "CONNECT_consumer.sasl.mechanism=PLAIN"
+      - "CONNECT_consumer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$$ConnectionString\" password=\"${connectionString}\";"
+    ports:
+      - "8083:8083"
+    volumes: 
+      - ${datadir}/kafka-connect/logs:/kafka/logs
+      - ${datadir}/kafka-connect/config:/kafka/config
+
+
+  
